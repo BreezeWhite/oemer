@@ -163,10 +163,9 @@ def connect_nearby_grid_group(
             labels = set(unique)  # Overlapped grid group IDs
             if -1 in labels:
                 labels.remove(-1)
-                no_id_idx = np.where(unique == -1)[0][0]
+                no_id_idx = np.where(unique==-1)[0][0]
                 unique = np.delete(unique, no_id_idx)
                 counts = np.delete(counts, no_id_idx)
-
 
             cands_box.append((end_x-step_size, y, end_x, y+h))
             if len(labels) == 0:
@@ -201,6 +200,7 @@ def connect_nearby_grid_group(
                 grid_id = int(grid_id[np.argmax(counts)])
                 assert grid_id in grid_groups[label].gids, f"{grid_id}, {label}"
                 grid = grids[grid_id]
+
                 # Interpolate y centers between the start and end points again.
                 centers = [grid.y_center, centers[0]]
                 x = [-i-1, 0]  # type: ignore
