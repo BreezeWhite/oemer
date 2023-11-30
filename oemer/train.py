@@ -9,7 +9,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import augly.image as imaugs
 
-from .build_label import build_label
+from .build_label import build_label, close_lines
 from .models.unet import semantic_segmentation, u_net
 from .constant_min import CHANNEL_NUM
 
@@ -199,7 +199,11 @@ class DataLoader(MultiprocessingDataLoader):
                 tar_w = int(ratio * image.size[0])
                 tar_h = int(ratio * image.size[1])
                 image = imaugs.resize(image, width=tar_w, height=tar_h)
-                staff_img = imaugs.resize(staff_img_path, width=tar_w, height=tar_h)
+                staff_img_array = cv2.imread(staff_img_path)
+                staff_img_array = cv2.cvtColor(staff_img_array, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+                staff_img_array = close_lines(staff_img_array)
+                staff_img = Image.fromarray(staff_img_array)
+                staff_img = imaugs.resize(staff_img, width=tar_w, height=tar_h)
                 symbol_img = imaugs.resize(symbol_img_path, width=tar_w, height=tar_h)
 
                 # Random perspective transform

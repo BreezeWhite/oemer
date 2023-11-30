@@ -86,6 +86,9 @@ def build_label(seg_path):
         if (ch != 0) and color in HALF_WHOLE_NOTE:
             note = fill_hole(arr, color)
             output[..., ch] += note
+        elif (ch != 0) and color in DEF.STAFF:
+            lines_closed = close_lines(arr)
+            output[..., ch] += np.where(lines_closed==255, 1, 0)     
         else:
             output[..., ch] += np.where(arr==color, 1, 0)
     return output
@@ -100,6 +103,32 @@ def find_example(dataset_path: str, color: int, max_count=100, mark_value=200):
         arr = np.array(img)
         if color in arr:
             return np.where(arr==color, mark_value, arr)
+        
+        
+def close_lines(img: np.ndarray):
+    #img = close_morph(img)
+    # Use hough transform to find lines
+    width = img.shape[1]
+    lines = cv2.HoughLinesP(img, 1, np.pi/180, threshold=width//32, minLineLength=width//16, maxLineGap=500)
+    if lines is not None:
+        angles = []
+        # Draw lines
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            angle = np.arctan2(y2-y1, x2-x1)
+            angles.append(angle)
+        mean_angle = np.mean(angles)
+        # Draw lines
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            angle = np.arctan2(y2-y1, x2-x1)
+            is_horizontal = abs(angle - mean_angle) < np.pi/4
+            if is_horizontal:
+                cv2.line(img, (x1,y1), (x2,y2), 255, 1)
+    else:
+        print("No lines found")
+
+    return img        
 
 
 if __name__ == "__main__":
