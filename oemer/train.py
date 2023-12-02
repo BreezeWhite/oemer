@@ -72,12 +72,22 @@ def preprocess_image(img_path):
         image = Image.fromarray(out)
         params['bg_color'] = {'hue': hue, 'saturation': sat, 'value': val}
 
+    aug_image = image.copy()
+
+    random_black_spots = random.randint(0, 5)
+    for _ in range(random_black_spots):
+        spot_image = random.randint(1, 5)
+        aug_image = imaugs.overlay_emoji(aug_image, emoji_path="black_spot" + str(spot_image) + ".png", 
+                                         emoji_size=random.uniform(0.01, 0.05), 
+                                         x_pos=random.uniform(0.01, 0.99), 
+                                         y_pos=random.uniform(0.01, 0.99))
+
     # Color jitter
     bright = (7 + random.randint(0, 6)) / 10  # 0.7~1.3
     saturation = (5 + random.randint(0, 7)) / 10  # 0.5~1.2
     contrast = (5 + random.randint(0, 10)) / 10  # 0.5~1.5
     aug_image = imaugs.color_jitter(
-        image, brightness_factor=bright, saturation_factor=saturation, contrast_factor=contrast)
+        aug_image, brightness_factor=bright, saturation_factor=saturation, contrast_factor=contrast)
     params['color_jitter'] = {'brightness': bright, 'saturation': saturation, 'contrast': contrast}
 
     # Blur
@@ -432,9 +442,9 @@ def train_model(
     val_steps=200,
     val_batch_size=8,
     early_stop=8,
-    data_model="dense"
+    data_model="segnet"
 ):
-    if data_model == "dense":
+    if data_model == "segnet":
         feat_files = get_deep_score_data_paths(dataset_path)
     else:
         feat_files = get_cvc_data_paths(dataset_path)
@@ -444,7 +454,7 @@ def train_model(
     val_files = feat_files[:split_idx]
 
     print(f"Loading dataset. Train/validation: {len(train_files)}/{len(val_files)}")
-    if data_model == "dense":
+    if data_model == "segnet":
         train_data = DsDataLoader(
                 train_files,
                 win_size=win_size,

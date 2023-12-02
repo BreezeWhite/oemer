@@ -26,12 +26,12 @@ def prepare_classifier_data():
 
 
 if model == "segnet":
-    model = train.train_model("ds2_dense", data_model="dense")
+    model = train.train_model("ds2_dense", data_model="segnet", learning_rate=5e-5, steps=2000)
     filename = get_model_base_name("segnet")
     write_text_to_file(model.to_json(), filename + ".json")
     model.save_weights(filename + ".h5")
 elif model == "unet":
-    model = train.train_model("CvcMuscima-Distortions", data_model="cvc")
+    model = train.train_model("CvcMuscima-Distortions", data_model="unet", learning_rate=5e-5)
     filename = get_model_base_name("unet")
     write_text_to_file(model.to_json(), filename + ".json")
     model.save_weights(filename + ".h5")

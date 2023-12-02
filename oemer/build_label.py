@@ -86,9 +86,9 @@ def build_label(seg_path):
         if (ch != 0) and color in HALF_WHOLE_NOTE:
             note = fill_hole(arr, color)
             output[..., ch] += note
-        elif (ch != 0) and color in DEF.STAFF:
-            lines_closed = close_lines(arr)
-            output[..., ch] += np.where(lines_closed==255, 1, 0)     
+        #elif (ch != 0) and color in DEF.STAFF:
+        #    lines_closed = close_lines(arr)
+        #    output[..., ch] += np.where(lines_closed==255, 1, 0)     
         else:
             output[..., ch] += np.where(arr==color, 1, 0)
     return output
@@ -109,7 +109,7 @@ def close_lines(img: np.ndarray):
     #img = close_morph(img)
     # Use hough transform to find lines
     width = img.shape[1]
-    lines = cv2.HoughLinesP(img, 1, np.pi/180, threshold=width//32, minLineLength=width//16, maxLineGap=500)
+    lines = cv2.HoughLinesP(img, 1, np.pi/180, threshold=width//32, minLineLength=width//16, maxLineGap=50)
     if lines is not None:
         angles = []
         # Draw lines
@@ -122,7 +122,7 @@ def close_lines(img: np.ndarray):
         for line in lines:
             x1, y1, x2, y2 = line[0]
             angle = np.arctan2(y2-y1, x2-x1)
-            is_horizontal = abs(angle - mean_angle) < np.pi/4
+            is_horizontal = abs(angle - mean_angle) < np.pi/16
             if is_horizontal:
                 cv2.line(img, (x1,y1), (x2,y2), 255, 1)
     else:

@@ -16,6 +16,7 @@ checkpoints/
 
 # Model training datasets
 /ds2_dense
+/ds2_complete
 /CvcMuscima-Distortions
 
 # Model training checkpoints and outputs
