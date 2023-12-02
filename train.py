@@ -26,7 +26,7 @@ def prepare_classifier_data():
 
 
 if model == "segnet":
-    model = train.train_model("ds2_dense", data_model="segnet", learning_rate=5e-5, steps=2000)
+    model = train.train_model("ds2_dense", data_model="segnet", learning_rate=5e-5, steps=1500)
     filename = get_model_base_name("segnet")
     write_text_to_file(model.to_json(), filename + ".json")
     model.save_weights(filename + ".h5")
