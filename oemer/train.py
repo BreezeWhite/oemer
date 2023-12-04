@@ -74,13 +74,13 @@ def preprocess_image(img_path):
 
     aug_image = image.copy()
 
-    random_black_spots = random.randint(0, 5)
-    for _ in range(random_black_spots):
-        spot_image = random.randint(1, 5)
-        aug_image = imaugs.overlay_emoji(aug_image, emoji_path="black_spot" + str(spot_image) + ".png", 
-                                         emoji_size=random.uniform(0.01, 0.05), 
-                                         x_pos=random.uniform(0.01, 0.99), 
-                                         y_pos=random.uniform(0.01, 0.99))
+    #random_black_spots = random.randint(0, 5)
+    #for _ in range(random_black_spots):
+    #    spot_image = random.randint(1, 5)
+    #    aug_image = imaugs.overlay_emoji(aug_image, emoji_path="black_spot" + str(spot_image) + ".png", 
+    #                                     emoji_size=random.uniform(0.01, 0.05), 
+    #                                     x_pos=random.uniform(0.01, 0.99), 
+    #                                     y_pos=random.uniform(0.01, 0.99))
 
     # Color jitter
     bright = (7 + random.randint(0, 6)) / 10  # 0.7~1.3

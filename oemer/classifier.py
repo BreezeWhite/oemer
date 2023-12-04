@@ -6,6 +6,8 @@ from PIL import Image
 
 import augly.image as imaugs
 import numpy as np
+import tensorflow as tf
+import os
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier
@@ -237,53 +239,65 @@ def predict(region, model_name):
     pred = model.predict(np.array(region).reshape(1, -1))
     return m_info['class_map'][pred[0]]
 
-def train_rests_above8(filename = "rests_above8.model"):
+def train_rests_above8(filename = "rests_above8"):
     folders = ["rest_8th", "rest_16th", "rest_32nd", "rest_64th"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(filename, "wb"))
+    save_model(filename, model, class_map)
 
 
-def train_rests(filename = "rests.model"):
+def train_rests(filename = "rests"):
     folders = ["rest_whole", "rest_quarter", "rest_8th"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(filename, "wb"))
+    save_model(filename, model, class_map)
 
 
-def train_all_rests(filename = "all_rests.model"):
+def train_all_rests(filename = "all_rests"):
     folders = ["rest_whole", "rest_quarter", "rest_8th", "rest_16th", "rest_32nd", "rest_64th"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(filename, "wb"))
+    save_model(filename, model, class_map)
 
 
-def train_sfn(filename = "sfn.model"):
+def train_sfn(filename = "sfn"):
     folders = ["sharp", "flat", "natural"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(filename, "wb"))
+    save_model(filename, model, class_map)
 
 
-def train_clefs(filename = "clef.model"):
+def train_clefs(filename = "clef"):
     folders = ["gclef", "fclef"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(filename, "wb"))
+    save_model(filename, model, class_map)
 
 
-def train_noteheads():
+def train_noteheads(filename = "notehead"):
     folders = ["notehead_solid", "notehead_hollow"]
     model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
     test_tf(model, [f"test_data/{folder}" for folder in folders])
-    output = {'model': model, 'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
-    pickle.dump(output, open(f"notehead.model", "wb"))
-    
+    save_model(filename, model, class_map)
+
+
+def train_rhythm(filename = "rhythm"):
+    folders = ["eighth", "half", "quarter", "sixteenth"]
+    model, class_map = train_tf([f"train_data/{folder}" for folder in folders])
+    test_tf(model, [f"test_data/{folder}" for folder in folders])
+    save_model(filename, model, class_map)
+
+
+def write_text_to_file(text, path):
+    with open(path, "w") as f:
+        f.write(text)
+
+def save_model(filename, model, class_map):
+    os.makedirs(filename, exist_ok=True)
+    output = {'w': TARGET_WIDTH, 'h': TARGET_HEIGHT, 'class_map': class_map}
+    pickle.dump(output, open(os.path.join(filename, "meta.info"), "wb"))
+    write_text_to_file(model.to_json(), os.path.join(filename, "arch.json"))
+    model.save_weights(os.path.join(filename, "weights.h5"))
 
 if __name__ == "__main__":
     samples = 400

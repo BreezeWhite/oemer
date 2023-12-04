@@ -26,3 +26,6 @@ checkpoints/
 /*.model
 /*.h5
 /*.json
+/*/arch.json
+/*/meta.info
+/*/weights.h5

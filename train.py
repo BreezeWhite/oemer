@@ -26,33 +26,37 @@ def prepare_classifier_data():
 
 
 if model == "segnet":
-    model = train.train_model("ds2_dense", data_model="segnet", learning_rate=5e-5, steps=1500)
+    model = train.train_model("ds2_dense", data_model="segnet", learning_rate=5e-6, steps=1500)
     filename = get_model_base_name("segnet")
-    write_text_to_file(model.to_json(), filename + ".json")
-    model.save_weights(filename + ".h5")
+    os.makedirs(filename)
+    write_text_to_file(model.to_json(), os.path.join(filename, "arch.json"))
+    model.save_weights(os.path.join(filename, "weights.h5"))
 elif model == "unet":
-    model = train.train_model("CvcMuscima-Distortions", data_model="unet", learning_rate=5e-5)
+    model = train.train_model("CvcMuscima-Distortions", data_model="unet", learning_rate=5e-6)
     filename = get_model_base_name("unet")
-    write_text_to_file(model.to_json(), filename + ".json")
-    model.save_weights(filename + ".h5")
+    os.makedirs(filename)
+    write_text_to_file(model.to_json(), os.path.join(filename, "arch.json"))
+    model.save_weights(os.path.join(filename, "weights.h5"))
 elif model == "rests_above8":
     prepare_classifier_data()
-    classifier.train_rests_above8(get_model_base_name(model) + ".model")
+    classifier.train_rests_above8(get_model_base_name(model))
 elif model == "rests":
     prepare_classifier_data()
-    classifier.train_rests(get_model_base_name(model) + ".model")
+    classifier.train_rests(get_model_base_name(model))
 elif model == "all_rests":
     prepare_classifier_data()
-    classifier.train_all_rests(get_model_base_name(model) + ".model")
+    classifier.train_all_rests(get_model_base_name(model))
 elif model == "sfn":
     prepare_classifier_data()
-    classifier.train_sfn(get_model_base_name(model) + ".model")
+    classifier.train_sfn(get_model_base_name(model))
 elif model == "clef":
     prepare_classifier_data()
-    classifier.train_clefs(get_model_base_name(model) + ".model")
+    classifier.train_clefs(get_model_base_name(model))
 elif model == "notehead":
     prepare_classifier_data()
-    classifier.train_noteheads(get_model_base_name(model) + ".model")
+    classifier.train_noteheads(get_model_base_name(model))
+elif model == "rhythm":
+    classifier.train_rhythm(get_model_base_name(model))
 else:
     print("Unknown model: " + model)
     sys.exit(1)
