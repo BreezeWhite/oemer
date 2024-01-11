@@ -71,7 +71,7 @@ def fill_hole(gt, tar_color):
     return tar
 
 
-def build_label(seg_path):
+def build_label(seg_path, strenghten_channels: dict[int, tuple[int, int]]=dict()):
     img = Image.open(seg_path)
     arr = np.array(img)
     color_set = set(np.unique(arr))
@@ -89,8 +89,16 @@ def build_label(seg_path):
         #elif (ch != 0) and color in DEF.STAFF:
         #    lines_closed = close_lines(arr)
         #    output[..., ch] += np.where(lines_closed==255, 1, 0)     
-        else:
+        elif ch != 0:
             output[..., ch] += np.where(arr==color, 1, 0)
+    for ch in strenghten_channels.keys():
+        output[..., ch] = make_symbols_stronger(output[..., ch], strenghten_channels[ch])
+    
+    # The background channel is 1 if all other channels are 0
+    background_ch = np.ones((arr.shape[0], arr.shape[1]))
+    for ch in range(1, total_chs):
+        background_ch = np.where(output[..., ch]==1, 0, background_ch)
+    output[..., 0] = background_ch
     return output
 
 
@@ -129,6 +137,14 @@ def close_lines(img: np.ndarray):
         print("No lines found")
 
     return img        
+        
+        
+def make_symbols_stronger(img: np.ndarray, kernel_size=(5, 5)):
+    """
+    Dilates the symbols to make them stronger
+    """
+    kernel = np.ones(kernel_size, np.uint8)
+    return cv2.dilate(img, kernel, iterations=1)
 
 
 if __name__ == "__main__":

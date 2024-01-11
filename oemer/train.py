@@ -74,13 +74,13 @@ def preprocess_image(img_path):
 
     aug_image = image.copy()
 
-    #random_black_spots = random.randint(0, 5)
-    #for _ in range(random_black_spots):
-    #    spot_image = random.randint(1, 5)
-    #    aug_image = imaugs.overlay_emoji(aug_image, emoji_path="black_spot" + str(spot_image) + ".png", 
-    #                                     emoji_size=random.uniform(0.01, 0.05), 
-    #                                     x_pos=random.uniform(0.01, 0.99), 
-    #                                     y_pos=random.uniform(0.01, 0.99))
+    random_black_spots = random.randint(0, 5)
+    for _ in range(random_black_spots):
+        spot_image = random.randint(1, 5)
+        aug_image = imaugs.overlay_emoji(aug_image, emoji_path="black_spot" + str(spot_image) + ".png", 
+                                         emoji_size=random.uniform(0.01, 0.05), 
+                                         x_pos=random.uniform(0.01, 0.99), 
+                                         y_pos=random.uniform(0.01, 0.99))
 
     # Color jitter
     bright = (7 + random.randint(0, 6)) / 10  # 0.7~1.3
@@ -91,12 +91,12 @@ def preprocess_image(img_path):
     params['color_jitter'] = {'brightness': bright, 'saturation': saturation, 'contrast': contrast}
 
     # Blur
-    rad = random.choice(np.arange(0.0001, 2.1, 0.5))
+    rad = random.choice(np.arange(0.1, 2.1, 0.5))
     aug_image = imaugs.blur(aug_image, radius=rad)
     params['blur_radius'] = rad
 
     # Pixel shuffle, kind of adding noise
-    factor = random.choice(np.arange(0.0001, 0.26, 0.05))
+    factor = random.choice(np.arange(0.1, 0.26, 0.05))
     aug_image = imaugs.shuffle_pixels(aug_image, factor=factor)
     params['pixel_shuffle_factor'] = factor
 
@@ -310,7 +310,11 @@ class DsDataLoader(MultiprocessingDataLoader):
 
                 # Preprocess image with transformations that won't change view.
                 image, _ = preprocess_image(inp_img_path)
-                label = build_label(seg_img_path)
+                strengthen_channels = {
+                    1: (5, 5),
+                    3: (3, 3)
+                }
+                label = build_label(seg_img_path, strenghten_channels=strengthen_channels)
 
                 # Random resize
                 ratio = random.choice(np.arange(0.2, 1.21, 0.1))
