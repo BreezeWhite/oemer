@@ -6,7 +6,7 @@ from PIL import Image
 import cv2
 import numpy as np
 
-from .constant_min import CLASS_CHANNEL_MAP
+from .constant_min import CLASS_CHANNEL_MAP, CHANNEL_NUM
 from .dense_dataset_definitions import DENSE_DATASET_DEFINITIONS as DEF
 
 
@@ -77,12 +77,12 @@ def build_label(seg_path):
     color_set = set(np.unique(arr))
     color_set.remove(0)  # Remove background color from the candidates
 
-    total_chs = len(set(CLASS_CHANNEL_MAP.values())) + 2  # Plus 'background' and 'others' channel.
+    total_chs = CHANNEL_NUM
     output = np.zeros(arr.shape + (total_chs,))
 
     output[..., 0] = np.where(arr==0, 1, 0)
     for color in color_set:
-        ch = CLASS_CHANNEL_MAP.get(color, -1)
+        ch = CLASS_CHANNEL_MAP.get(color, 0)
         if (ch != 0) and color in HALF_WHOLE_NOTE:
             note = fill_hole(arr, color)
             output[..., ch] += note

@@ -26,6 +26,10 @@ checkpoints/
 /*.model
 /*.h5
 /*.json
-/*/arch.json
-/*/meta.info
-/*/weights.h5
+
+/segnet_*
+/unet_*
+/rests_*
+/all_rests_*
+/sfn_*
+/clef_*

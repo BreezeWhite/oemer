@@ -433,7 +433,6 @@ def focal_tversky_loss(y_true, y_pred, fw=0.7, alpha=0.7, smooth=1., gamma=0.75)
 
 def train_model(
     dataset_path,
-    win_size=288,
     train_val_split=0.1,
     learning_rate=5e-4,
     epochs=15,
@@ -455,6 +454,7 @@ def train_model(
 
     print(f"Loading dataset. Train/validation: {len(train_files)}/{len(val_files)}")
     if data_model == "segnet":
+        win_size=288
         train_data = DsDataLoader(
                 train_files,
                 win_size=win_size,
@@ -467,8 +467,9 @@ def train_model(
                 num_samples=epochs*val_steps*val_batch_size
             ) \
             .get_dataset(val_batch_size)
-        model = semantic_segmentation(win_size=win_size, out_class=CHANNEL_NUM)
+        model = u_net(win_size=win_size, out_class=CHANNEL_NUM)
     else:
+        win_size=256
         train_data = DataLoader(
                 train_files,
                 win_size=win_size,
@@ -481,7 +482,7 @@ def train_model(
                 num_samples=epochs*val_steps*val_batch_size
             ) \
             .get_dataset(val_batch_size)
-        model = u_net(win_size=win_size, out_class=3)
+        model = semantic_segmentation(win_size=256, out_class=3)
 
     print("Initializing model")
     optim = tf.keras.optimizers.Adam(learning_rate=WarmUpLearningRate(learning_rate))

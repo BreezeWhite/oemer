@@ -13,4 +13,4 @@ CLASS_CHANNEL_MAP = {
     for color in colors
 }
 
-CHANNEL_NUM = len(CLASS_CHANNEL_LIST) + 2
+CHANNEL_NUM = len(CLASS_CHANNEL_LIST) + 1  # Plus 'background' and 'others' channel.

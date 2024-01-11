@@ -142,10 +142,19 @@ def my_conv_block(inp, kernels, kernel_size=(3, 3), strides=(1, 1)):
     return out
 
 
+def my_conv_small_block(inp, kernels, kernel_size=(3, 3), strides=(1, 1)):
+    inp = L.Conv2D(kernels, kernel_size, strides=strides, padding='same', dtype=tf.float32)(inp)
+    out = L.Activation("relu")(L.LayerNormalization()(inp))
+    out = L.Dropout(0.3)(out)
+    out = L.Add()([inp, out])
+    out = L.Activation("relu")(L.LayerNormalization()(out))
+    return out
+
+
 def my_trans_conv_block(inp, kernels, kernel_size=(3, 3), strides=(1, 1)):
     inp = L.Conv2DTranspose(kernels, kernel_size, strides=strides, padding='same', dtype=tf.float32)(inp)
-    out = L.Activation("relu")(L.LayerNormalization()(inp))
-    out = L.Conv2D(kernels, kernel_size, padding='same', dtype=tf.float32)(out)
+    #out = L.Activation("relu")(L.LayerNormalization()(inp))
+    out = L.Conv2D(kernels, kernel_size, padding='same', dtype=tf.float32)(inp)
     out = L.Activation("relu")(L.LayerNormalization()(out))
     out = L.Dropout(0.3)(out)
     out = L.Add()([inp, out])
@@ -157,25 +166,25 @@ def u_net(win_size=288, out_class=3):
     inp = L.Input(shape=(win_size, win_size, 3))
     tensor = L.SeparableConv2D(128, (3, 3), activation="relu", padding='same')(inp)
 
-    l1 = my_conv_block(tensor, 64, (3, 3), strides=(2, 2))  # 128
-    l1 = my_conv_block(l1, 128, (3, 3))
-    l1 = my_conv_block(l1, 128, (3, 3))
+    l1 = my_conv_small_block(tensor, 64, (3, 3), strides=(2, 2))
+    l1 = my_conv_small_block(l1, 64, (3, 3))
+    l1 = my_conv_small_block(l1, 64, (3, 3))
 
-    skip = my_conv_block(l1, 128, (3, 3), strides=(2, 2))  # 64
-    l2 = my_conv_block(skip, 128, (3, 3))
-    l2 = my_conv_block(l2, 128, (3, 3))
-    l2 = my_conv_block(l2, 128, (3, 3))
-    l2 = my_conv_block(l2, 128, (3, 3))
+    skip = my_conv_small_block(l1, 128, (3, 3), strides=(2, 2))
+    l2 = my_conv_small_block(skip, 128, (3, 3))
+    l2 = my_conv_small_block(l2, 128, (3, 3))
+    l2 = my_conv_small_block(l2, 128, (3, 3))
+    l2 = my_conv_small_block(l2, 128, (3, 3))
     l2 = L.Concatenate()([skip, l2])
 
-    l3 = my_conv_block(l2, 256, (3, 3))
-    l3 = my_conv_block(l3, 256, (3, 3))
-    l3 = my_conv_block(l3, 256, (3, 3))
-    l3 = my_conv_block(l3, 256, (3, 3))
-    l3 = my_conv_block(l3, 256, (3, 3))
+    l3 = my_conv_small_block(l2, 256, (3, 3))
+    l3 = my_conv_small_block(l3, 256, (3, 3))
+    l3 = my_conv_small_block(l3, 256, (3, 3))
+    l3 = my_conv_small_block(l3, 256, (3, 3))
+    l3 = my_conv_small_block(l3, 256, (3, 3))
     l3 = L.Concatenate()([l2, l3])
 
-    bot = my_conv_block(l3, 256, (3, 3), strides=(2, 2))  # 32
+    bot = my_conv_small_block(l3, 256, (3, 3), strides=(2, 2))  # 32
     st1 = L.SeparableConv2D(256, (3, 3), padding='same', dtype=tf.float32)(bot)
     st1 = L.Activation("relu")(L.LayerNormalization()(st1))
     st2 = L.SeparableConv2D(256, (3, 3), dilation_rate=(2, 2), padding='same', dtype=tf.float32)(bot)
@@ -189,20 +198,23 @@ def u_net(win_size=288, out_class=3):
     norm = L.Activation("relu")(L.LayerNormalization()(st))
     bot = my_trans_conv_block(norm, 256, (3, 3), strides=(2, 2))  # 64
 
-    tl3 = L.Conv2D(256, (3, 3), padding='same', dtype=tf.float32)(bot)
+    tl3 = L.Conv2D(128, (3, 3), padding='same', dtype=tf.float32)(bot)
     tl3 = L.Activation("relu")(L.LayerNormalization()(tl3))
     tl3 = L.Concatenate()([tl3, l3])
+    tl3 = my_conv_small_block(tl3, 128, (3, 3))
     tl3 = my_trans_conv_block(tl3, 128, (3, 3))
 
     # Head 1
     tl2 = L.Conv2D(128, (3, 3), padding='same', dtype=tf.float32)(tl3)
     tl2 = L.Activation("relu")(L.LayerNormalization()(tl2))
     tl2 = L.Concatenate()([tl2, l2])
+    tl2 = my_conv_small_block(tl2, 128, (3, 3))
     tl2 = my_trans_conv_block(tl2, 128, (3, 3), strides=(2, 2))  # 128
 
     tl1 = L.Conv2D(128, (3, 3), padding='same', dtype=tf.float32)(tl2)
     tl1 = L.Activation("relu")(L.LayerNormalization()(tl1))
     tl1 = L.Concatenate()([tl1, l1])
+    tl1 = my_conv_small_block(tl1, 128, (3, 3))
     tl1 = my_trans_conv_block(tl1, 128, (3, 3), strides=(2, 2))  # 256
 
     out1 = L.Conv2D(out_class, (1, 1), activation='softmax', padding='same', dtype=tf.float32)(tl1)
