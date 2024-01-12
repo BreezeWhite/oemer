@@ -312,7 +312,6 @@ class DsDataLoader(MultiprocessingDataLoader):
                 image, _ = preprocess_image(inp_img_path)
                 strengthen_channels = {
                     1: (5, 5),
-                    3: (3, 3)
                 }
                 label = build_label(seg_img_path, strenghten_channels=strengthen_channels)
 
