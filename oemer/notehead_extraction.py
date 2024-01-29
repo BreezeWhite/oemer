@@ -306,7 +306,7 @@ def fill_hole(region: ndarray) -> ndarray:
 def gen_notes(bboxes: List[ndarray], symbols: ndarray) -> List[NoteHead]:
     notes = []
     for bbox in bboxes:
-        # Instanitiate notehead.
+        # Instantiate notehead.
         nn = NoteHead()
         nn.bbox = typing.cast(BBox, bbox)
 
@@ -343,7 +343,7 @@ def gen_notes(bboxes: List[ndarray], symbols: ndarray) -> List[NoteHead]:
         # The value could also be negative. The zero index starts from the position
         # same as D4, assert the staffline is in treble clef. The value increases
         # as the pitch goes up.
-        # Build centers of each postion first.
+        # Build centers of each position first.
         step = st_master.unit_size / 2
         pos_cen = [l.y_center for l in st_master.lines[::-1]]
         tmp_inter = []
@@ -354,7 +354,7 @@ def gen_notes(bboxes: List[ndarray], symbols: ndarray) -> List[NoteHead]:
             pos_cen.insert(idx*2+1, interp)
         pos_cen = [pos_cen[0]+step] + pos_cen + [pos_cen[-1]-step]
 
-        # Estimate position by the closeset center.
+        # Estimate position by the closest center.
         pos_idx = np.argmin(np.abs(np.array(pos_cen)-cen_y))
         if 0 < pos_idx < len(pos_cen)-1:
             nn.staff_line_pos = int(pos_idx)

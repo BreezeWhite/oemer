@@ -2,6 +2,7 @@
 from typing import Union, Any, List, Tuple, Dict
 
 import cv2
+from cv2.typing import RotatedRect
 import numpy as np
 from numpy import ndarray
 from sklearn.cluster import AgglomerativeClustering
@@ -118,11 +119,12 @@ def find_lines(data: ndarray, min_len: int = 10, max_gap: int = 20) -> List[BBox
 
     lines = cv2.HoughLinesP(data.astype(np.uint8), 1, np.pi/180, 50, None, min_len, max_gap)
     new_line = []
-    for line in lines:
-        line = line[0]
-        top_x, bt_x = (line[0], line[2]) if line[0] < line[2] else (line[2], line[0])
-        top_y, bt_y = (line[1], line[3]) if line[1] < line[3] else (line[3], line[1])
-        new_line.append((top_x, top_y, bt_x, bt_y))
+    if lines is not None:
+        for line in lines:
+            line = line[0]
+            top_x, bt_x = (line[0], line[2]) if line[0] < line[2] else (line[2], line[0])
+            top_y, bt_y = (line[1], line[3]) if line[1] < line[3] else (line[3], line[1])
+            new_line.append((top_x, top_y, bt_x, bt_y))
     return new_line
 
 
@@ -159,7 +161,7 @@ def draw_bounding_boxes(
     return img
 
 
-def get_rotated_bbox(data: ndarray) -> List[Tuple[Tuple[float, float], Tuple[float, float], float]]:
+def get_rotated_bbox(data: ndarray) -> List[RotatedRect]:
     contours, _ = cv2.findContours(data.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     bboxes = []
     for cnt in contours:

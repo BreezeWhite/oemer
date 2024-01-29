@@ -270,7 +270,7 @@ def parse_clefs_keys(
     for box in bboxes:
         w = box[2] - box[0]
         h = box[3] - box[1]
-        region = clefs_keys[box[1]:box[3], box[0]:box[2]]
+        region: ndarray = clefs_keys[box[1]:box[3], box[0]:box[2]]
         usize = get_unit_size(*get_center(box))
         area_size_ratio = w * h / usize**2
         area_tp_ratio = region[region>0].size / (w * h)
@@ -317,6 +317,8 @@ def parse_rests(line_box: ndarray, unit_size: float) -> Tuple[List[BBox], List[s
 
     bboxes = get_bbox(rests)
     bboxes = filter_out_of_range_bbox(bboxes)
+    if len(bboxes) == 0:
+        return [], []
     bboxes = merge_nearby_bbox(bboxes, unit_size*1.2)
     bboxes = rm_merge_overlap_bbox(bboxes)
     bboxes = filter_out_small_area(bboxes, area_size_func=lambda usize: usize**2 * 0.7)
@@ -373,6 +375,9 @@ def get_nearby_note_id(box: BBox, note_id_map: ndarray) -> Union[int, None]:
     unit_size = int(round(get_unit_size(cen_x, cen_y)))
     nid = None
     for x in range(box[2], box[2]+unit_size):
+        is_in_range = (0 <= cen_y < note_id_map.shape[0]) and (0 <= x < note_id_map.shape[1])
+        if not is_in_range:
+            continue
         if note_id_map[cen_y, x] != -1:
             nid = note_id_map[cen_y, x]
             break
@@ -401,11 +406,14 @@ def gen_sfns(bboxes: List[BBox], labels: List[str]) -> List[Sfn]:
         if ss.note_id is not None:
             note = notes[ss.note_id]
             if ss.track != note.track:
-                raise E.SfnNoteTrackMismatch(f"Track of sfn and note not mismatch: {ss}\n{note}")
-            if ss.group != note.group:
-                raise E.SfnNoteGroupMismatch(f"Group of sfn and note not mismatch: {ss}\n{note}")
-            notes[ss.note_id].sfn = ss.label
-            ss.is_key = False
+                print(f"Track of sfn and note mismatch: {ss}\n{note}") 
+                notes[ss.note_id].invalid = True
+            elif ss.group != note.group:
+                print(f"Group of sfn and note mismatch: {ss}\n{note}")
+                notes[ss.note_id].invalid = True
+            else:
+                notes[ss.note_id].sfn = ss.label
+                ss.is_key = False
 
         sfns.append(ss)
     return sfns
@@ -432,7 +440,7 @@ def gen_rests(bboxes: List[BBox], labels: List[str]) -> List[Rest]:
         rr.group = st1.group
 
         unit_size = int(round(get_unit_size(*get_center(box))))
-        dot_range = range(box[2]+1, box[2]+unit_size)
+        dot_range = range(box[2]+1, min(box[2]+unit_size, symbols.shape[1] - 1))
         dot_region = symbols[box[1]:box[3], dot_range]
         if 0 < np.sum(dot_region) < unit_size**2 / 7:
             rr.has_dot = True

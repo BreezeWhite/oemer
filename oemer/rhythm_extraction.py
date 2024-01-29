@@ -3,6 +3,7 @@ import random
 import math
 
 import cv2
+from cv2.typing import RotatedRect
 import scipy.ndimage
 import numpy as np
 from numpy import ndarray
@@ -37,7 +38,12 @@ def scan_dot(
         # Find the right most bound for scan the dot.
         # Should have width less than unit_size, and can't
         # touch the nearby note.
-        cur_scan_line = note_id_map[int(start_y):int(bbox[3]), int(right_bound)]
+        try:
+            cur_scan_line = note_id_map[int(start_y):int(bbox[3]), int(right_bound)]
+        except IndexError as e:
+            print(e)
+            break
+        
         ids = set(np.unique(cur_scan_line))
         if -1 in ids:
             ids.remove(-1)
@@ -134,7 +140,7 @@ def parse_beams(
         min_area_ratio: float = 0.07, 
         min_tp_ratio: float = 0.4, 
         min_width_ratio: float = 0.2
-) -> Tuple[ndarray, List[Tuple[Tuple[float, float], Tuple[float, float], float]], ndarray]:
+) -> Tuple[ndarray, List[RotatedRect], ndarray]:
     # Fetch parameters
     symbols = layers.get_layer('symbols_pred')
     staff_pred = layers.get_layer('staff_pred')
@@ -156,14 +162,14 @@ def parse_beams(
     ratio_map = np.copy(poly_map)
 
     null_color = (255, 255, 255)
-    valid_box = []
+    valid_box: List[RotatedRect] = []
     valid_idxs = []
     idx_map = np.zeros_like(poly_map) - 1
-    for idx, rbox in enumerate(rboxes):  # type: ignore
+    for box_idx, rbox in enumerate(rboxes):  # type: ignore
         # Used to find indexes of contour areas later. Must be check before
         # any 'continue' statement.
-        idx %= 255  # type: ignore
-        if idx == 0:
+        box_idx %= 255  # type: ignore
+        if box_idx == 0:
             idx_map = np.zeros_like(poly_map) - 1
 
         # Get the contour of the rotated box
@@ -186,8 +192,8 @@ def parse_beams(
             continue
 
         # Tricky way to get the index of the contour area
-        cv2.fillPoly(idx_map, [cnt], color=(idx, 0, 0))
-        yi, xi = np.where(idx_map[..., 0] == idx)
+        cv2.fillPoly(idx_map, [cnt], color=(box_idx, 0, 0))
+        yi, xi = np.where(idx_map[..., 0] == box_idx)
         pts = beams[yi, xi]
         meta_idx = np.where(pts>0)[0]
         ryi = yi[meta_idx]
@@ -429,7 +435,9 @@ def parse_inner_groups(poly_map, group, set_box, note_type_map, half_scan_width,
             end_x=min(set_box[2], cen_x+half_scan_width),
             end_y=end_y,
             threshold=threshold
-        )
+        )        
+        if count >= len(note_type_map):
+            return note_type_map[len(note_type_map) - 1]
         return note_type_map[count]
 
     if len(nts) == 2:
@@ -501,7 +509,7 @@ def parse_rhythm(beam_map: ndarray, map_info: Dict[int, Dict[str, Any]], agree_t
             rev_map_info[gid] = {'reg': reg, 'bbox': box}
 
     # Define beam count to note type mapping
-    note_type_map = {
+    note_type_map: Dict[int, NoteType] = {
         0: NoteType.QUARTER,
         1: NoteType.EIGHTH,
         2: NoteType.SIXTEENTH,
@@ -580,7 +588,7 @@ def parse_rhythm(beam_map: ndarray, map_info: Dict[int, Dict[str, Any]], agree_t
             end_y = gbox[3]
 
         # Calculate how many beams/flags are there.
-        count = scan_beam_flag(  # type: ignore
+        beam_flag_count = scan_beam_flag(  # type: ignore
             bin_beam_map,
             max(reg_box[0], cen_x-half_scan_width),
             start_y,
@@ -590,12 +598,15 @@ def parse_rhythm(beam_map: ndarray, map_info: Dict[int, Dict[str, Any]], agree_t
         )
 
         #cv2.rectangle(beam_img, (gbox[0], gbox[1]), (gbox[2], gbox[3]), (255, 0, 255), 1)
-        cv2.putText(beam_img, str(count), (int(cen_x), int(gbox[3])+2), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
+        cv2.putText(beam_img, str(beam_flag_count), (int(cen_x), int(gbox[3])+2), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
 
         # Assign note label
         for nid in group.note_ids:
             if notes[nid].label is None:
-                notes[nid].label = note_type_map[count]  # type: ignore
+                if beam_flag_count in note_type_map:
+                    notes[nid].label = note_type_map[beam_flag_count]
+                else:
+                    notes[nid].invalid = True
 
     return beam_img
 
@@ -605,7 +616,7 @@ def extract(
     dot_max_area_ratio: float = 0.2,
     beam_min_area_ratio: float = 0.07,
     agree_th: float = 0.15
-) -> Tuple[ndarray, List[Tuple[Tuple[float, float], Tuple[float, float], float]]]:
+) -> Tuple[ndarray, List[RotatedRect]]:
 
     logger.debug("Parsing dot")
     parse_dot(max_area_ratio=dot_max_area_ratio, min_area_ratio=dot_min_area_ratio)

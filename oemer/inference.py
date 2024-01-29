@@ -58,8 +58,8 @@ def inference(
     image_pil = Image.open(img_path)
     if "GIF" != image_pil.format:
         # Tricky workaround to avoid random mistery transpose when loading with 'Image'.
-        image_pil = cv2.imread(img_path)
-        image_pil = Image.fromarray(image_pil)
+        image_cv = cv2.imread(img_path)
+        image_pil = Image.fromarray(image_cv)
 
     image_pil = image_pil.convert("RGB")
     image = np.array(resize_image(image_pil))

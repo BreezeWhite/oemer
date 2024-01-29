@@ -331,7 +331,7 @@ def extract(
 
     # Start process
     zones, *_ = init_zones(staff_pred, splits=splits)
-    all_staffs = []
+    all_staffs: List[List[Staff]] = []
     for rr in zones:
         print(rr[0], rr[-1], end=' ')
         rr = np.array(rr, dtype=np.int64)
@@ -339,43 +339,45 @@ def extract(
         if staffs is not None:
             all_staffs.append(staffs)
             print(len(staffs))
-    all_staffs = align_staffs(all_staffs)  # type: ignore
+    aligned_staffs: np.ndarray = align_staffs(all_staffs)
 
     # Use barline information to infer the number of tracks for each group.
-    num_track = further_infer_track_nums(all_staffs, min_degree=barline_min_degree)  # type: ignore
+    num_track = further_infer_track_nums(aligned_staffs, min_degree=barline_min_degree)
     logger.debug(f"Tracks: {num_track}")
-    for col_sts in all_staffs:
+    for col_sts in aligned_staffs:
         for idx, st in enumerate(col_sts):
             st.track = idx % num_track
             st.group = idx // num_track
 
     # Validate staffs across zones.
     # Should have same number of staffs
-    if not all([len(staff) == len(all_staffs[0]) for staff in all_staffs]):
+    if not all([len(staff) == len(aligned_staffs[0]) for staff in aligned_staffs]):
         raise Exception
-    assert all([len(staff) == len(all_staffs[0]) for staff in all_staffs])
+    assert all([len(staff) == len(aligned_staffs[0]) for staff in aligned_staffs])
 
     norm = lambda data: np.abs(np.array(data) / np.mean(data) - 1)
-    for staffs in all_staffs.T:  # type: ignore
+    valid_staffs: list[list[Staff]] = []
+    for staffs in aligned_staffs.T:
         # Should all have 5 lines
         line_num = [len(staff.lines) for staff in staffs]
         if len(set(line_num)) != 1:
-            raise E.StafflineCountInconsistent(
-                f"Some of the stafflines contains less or more than 5 lines: {line_num}")
+            print(f"Some of the stafflines contains less or more than 5 lines: {line_num}")
+            continue
 
         # Check Staffs that are approximately at the same row.
         centers = np.array([staff.y_center for staff in staffs])
         if not np.all(norm(centers) < horizontal_diff_th):
-            raise E.StafflineNotAligned(
-                f"Centers of staff parts at the same row not aligned (Th: {horizontal_diff_th}): {norm(centers)}")
+            print(f"Centers of staff parts at the same row not aligned (Th: {horizontal_diff_th}): {norm(centers)}")
+            continue
 
         # Unit sizes should roughly all the same
         unit_size = np.array([staff.unit_size for staff in staffs])
-        if not np.all(norm(unit_size) < unit_size_diff_th):
-            raise E.StafflineUnitSizeInconsistent(
-                f"Unit sizes not consistent (th: {unit_size_diff_th}): {norm(unit_size)}")
+        if not np.all(norm(unit_size) < unit_size_diff_th):          
+            print(f"Unit sizes not consistent (th: {unit_size_diff_th}): {norm(unit_size)}")
+            continue
+        valid_staffs.append(staffs)
 
-    return np.array(all_staffs), zones
+    return np.array(valid_staffs).T, zones
 
 
 def extract_part(pred: ndarray, x_offset: int, line_threshold: float = 0.8) -> List[Staff]:
