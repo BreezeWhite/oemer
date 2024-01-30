@@ -25,7 +25,7 @@ pip install oemer
 pip install oemer[tf]
 
 # (optional) Or install the newest updates directly from Github.
-pip install https://github.com/BreezeWhite/oemer
+pip install git+https://github.com/BreezeWhite/oemer
 
 # Run
 oemer <path_to_image>
