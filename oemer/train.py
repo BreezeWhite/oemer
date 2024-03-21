@@ -9,7 +9,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import augly.image as imaugs
 
-from .build_label import build_label
+from .build_label import build_label, close_lines
 from .models.unet import semantic_segmentation, u_net
 from .constant_min import CHANNEL_NUM
 
@@ -72,21 +72,23 @@ def preprocess_image(img_path):
         image = Image.fromarray(out)
         params['bg_color'] = {'hue': hue, 'saturation': sat, 'value': val}
 
+    aug_image = image.copy()
+
     # Color jitter
     bright = (7 + random.randint(0, 6)) / 10  # 0.7~1.3
     saturation = (5 + random.randint(0, 7)) / 10  # 0.5~1.2
     contrast = (5 + random.randint(0, 10)) / 10  # 0.5~1.5
     aug_image = imaugs.color_jitter(
-        image, brightness_factor=bright, saturation_factor=saturation, contrast_factor=contrast)
+        aug_image, brightness_factor=bright, saturation_factor=saturation, contrast_factor=contrast)
     params['color_jitter'] = {'brightness': bright, 'saturation': saturation, 'contrast': contrast}
 
     # Blur
-    rad = random.choice(np.arange(0.0001, 2.1, 0.5))
+    rad = random.choice(np.arange(0.1, 2.1, 0.5))
     aug_image = imaugs.blur(aug_image, radius=rad)
     params['blur_radius'] = rad
 
     # Pixel shuffle, kind of adding noise
-    factor = random.choice(np.arange(0.0001, 0.26, 0.05))
+    factor = random.choice(np.arange(0.1, 0.26, 0.05))
     aug_image = imaugs.shuffle_pixels(aug_image, factor=factor)
     params['pixel_shuffle_factor'] = factor
 
@@ -199,7 +201,11 @@ class DataLoader(MultiprocessingDataLoader):
                 tar_w = int(ratio * image.size[0])
                 tar_h = int(ratio * image.size[1])
                 image = imaugs.resize(image, width=tar_w, height=tar_h)
-                staff_img = imaugs.resize(staff_img_path, width=tar_w, height=tar_h)
+                staff_img_array = cv2.imread(staff_img_path)
+                staff_img_array = cv2.cvtColor(staff_img_array, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+                staff_img_array = close_lines(staff_img_array)
+                staff_img = Image.fromarray(staff_img_array)
+                staff_img = imaugs.resize(staff_img, width=tar_w, height=tar_h)
                 symbol_img = imaugs.resize(symbol_img_path, width=tar_w, height=tar_h)
 
                 # Random perspective transform
@@ -296,7 +302,10 @@ class DsDataLoader(MultiprocessingDataLoader):
 
                 # Preprocess image with transformations that won't change view.
                 image, _ = preprocess_image(inp_img_path)
-                label = build_label(seg_img_path)
+                strengthen_channels = {
+                    1: (5, 5),
+                }
+                label = build_label(seg_img_path, strenghten_channels=strengthen_channels)
 
                 # Random resize
                 ratio = random.choice(np.arange(0.2, 1.21, 0.1))
